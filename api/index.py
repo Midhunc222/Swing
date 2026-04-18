@@ -198,9 +198,10 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
             data = DATA_CACHE[cache_key]['data']
         else:
             from datetime import datetime
-            # Pass the custom session to yfinance
-            data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False, session=session)
+            # Let yfinance handle its own session (newer versions require curl_cffi handles)
+            data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
             DATA_CACHE[cache_key] = {'data': data, 'date': datetime.now().strftime('%Y-%m-%d')}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Data Download Failed: {str(e)}")
 

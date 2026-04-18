@@ -8,3 +8,4 @@ beautifulsoup4
 requests
 lxml
 cryptography
+curl_cffi
