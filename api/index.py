@@ -184,10 +184,9 @@ async def get_fundamentals(ticker: str):
 @app.get("/api/screener")
 async def screen_stocks(interval: str = "1d", force: bool = False):
     breakout_stocks = []
-    # Multi-tier speed logic for Vercel vs Local
-    is_vercel = os.environ.get('VERCEL') == '1'
-    tickers = NIFTY_500_TICKERS[:250] if is_vercel else NIFTY_500_TICKERS
-    period = "1y" if is_vercel else ("2y" if interval == "1d" else "max")
+    # Use full Nifty 500 on both Vercel and Local (now safe due to optimizations)
+    tickers = NIFTY_500_TICKERS
+    period = "1y" if interval == "1d" else "max"
     
     cache_key = f"screener_{interval}"
     now = time.time()

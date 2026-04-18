@@ -151,7 +151,7 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
     cache_key = f"screener_{interval}"
     now = time.time()
     
-    tickers = NIFTY_500_TICKERS[:250]
+    tickers = NIFTY_500_TICKERS
     
     if not force and is_cache_valid(cache_key):
         data = DATA_CACHE[cache_key]['data']
