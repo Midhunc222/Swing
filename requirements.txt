@@ -7,3 +7,4 @@ ta
 beautifulsoup4
 requests
 lxml
+cryptography

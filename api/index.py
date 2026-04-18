@@ -1,16 +1,25 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import yfinance as yf
 import pandas as pd
-from tickers import NIFTY_500_TICKERS, NIFTY_100_TICKERS, NIFTY_50_TICKERS
-from strategy import calculate_indicators, run_backtest, check_entry_condition
 from typing import List, Optional
 import os
 import time
 import requests
+import sys
+from pathlib import Path
+
+# FORCE PATH RESOLUTION: Help Vercel find local modules in the api/ directory
+api_dir = str(Path(__file__).parent)
+if api_dir not in sys.path:
+    sys.path.append(api_dir)
+
+# Now we can safely import local modules
+from tickers import NIFTY_500_TICKERS, NIFTY_100_TICKERS, NIFTY_50_TICKERS
+from strategy import calculate_indicators, run_backtest, check_entry_condition
 
 # Configure yfinance to use a browser-like User-Agent
 # This reduces the chance of 403 Forbidden errors on Vercel
@@ -45,6 +54,28 @@ app.add_middleware(
 class BacktestRequest(BaseModel):
     ticker: str
     interval: str = "1d" # '1d', '1wk'
+
+@app.get("/api/debug")
+async def debug_environment():
+    """Diagnostic endpoint to see what's wrong on Vercel."""
+    import sys
+    import platform
+    try:
+        # Test a small download
+        test_data = yf.download("RELIANCE.NS", period="1mo", session=session, progress=False)
+        yf_status = "OK" if not test_data.empty else "Empty Result"
+    except Exception as e:
+        yf_status = f"Error: {str(e)}"
+        
+    return {
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "current_dir": os.getcwd(),
+        "api_dir": str(Path(__file__).parent),
+        "sys_path": sys.path,
+        "yfinance_test": yf_status,
+        "tickers_available": "NIFTY_50_TICKERS" in globals()
+    }
 
 @app.get("/api/tickers")
 async def get_tickers():
@@ -299,14 +330,26 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
     conviction_order = {"High": 0, "Medium": 1, "Low": 2}
     breakout_stocks.sort(key=lambda x: (conviction_order.get(x["conviction"], 3), -x["win_rate"]))
 
-    return {
-        "breakouts": breakout_stocks,
-        "metrics": {
-            "total_universe": total_universe,
-            "successfully_scanned": success_count,
-            "failed_tickers": fail_count
+    try:
+        # Sort by Conviction (High > Medium) and then by Win Rate (Descending)
+        conviction_order = {"High": 0, "Medium": 1, "Low": 2}
+        breakout_stocks.sort(key=lambda x: (conviction_order.get(x["conviction"], 3), -x["win_rate"]))
+
+        return {
+            "breakouts": breakout_stocks,
+            "metrics": {
+                "total_universe": total_universe,
+                "successfully_scanned": success_count,
+                "failed_tickers": fail_count
+            }
         }
-    }
+    except Exception as e:
+        import traceback
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Scanner Crash: {str(e)}", "traceback": traceback.format_exc()}
+        )
+
 
 @app.post("/api/backtest")
 async def do_backtest(req: BacktestRequest):
