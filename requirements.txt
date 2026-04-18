@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+yfinance
+pandas
+pydantic
+ta
+beautifulsoup4
+requests
+lxml
