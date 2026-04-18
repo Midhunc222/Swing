@@ -151,9 +151,9 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
     cache_key = f"screener_{interval}"
     now = time.time()
     
-    # Use Nifty 100 on Vercel to avoid 10s timeout, Nifty 500 otherwise
+    # Use Nifty 250 on Vercel (now safe due to selective backtesting)
     is_vercel = os.environ.get('VERCEL') == '1'
-    tickers = NIFTY_100_TICKERS if is_vercel else NIFTY_500_TICKERS
+    tickers = NIFTY_500_TICKERS[:250] if is_vercel else NIFTY_500_TICKERS
     
     if not force and is_cache_valid(cache_key):
         data = DATA_CACHE[cache_key]['data']
@@ -182,12 +182,6 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
                 continue
                 
             last_bar = df.iloc[-1]
-            # Run complete historical backtest on ALL stocks unconditionally
-            bt_results = run_backtest(df, interval=interval)
-            win_rate = bt_results["win_rate"]
-            
-            from datetime import datetime
-            
             vol = float(last_bar['Volume'])
             vol_sma = float(last_bar['Volume_SMA'])
             adx = float(last_bar['ADX'])
@@ -195,9 +189,29 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
             supertrend_val = float(last_bar['Supertrend'])
             close_price = float(last_bar['Close'])
 
+            # --- SELECTIVE BACKTESTING (Optimization for Serverless) ---
+            # Define basic technical filter (within buffer of supertrend and showing momentum)
+            sl_buffer = 1.12 if interval == "1d" else 1.25
+            is_breakout_candidate = (
+                close_price > supertrend_val and 
+                close_price <= supertrend_val * sl_buffer and
+                rsi > 55 # Slightly loose RSI for candidate check
+            )
+
+            # Skip heavy simulation if it's not even a candidate
+            if not is_breakout_candidate:
+                success_count += 1
+                continue
+
+            # --- HEAVY SIMULATION (Only for candidates) ---
+            bt_results = run_backtest(df, interval=interval)
+            win_rate = bt_results["win_rate"]
+            
+            from datetime import datetime
+            
             # SL and Target Logic (minimum 5% target floor)
             sl = round(supertrend_val, 2)
-            risk = close_price - sl if close_price > sl else close_price * 0.05
+            risk = close_price - sl
             target = round(max(close_price + (risk * 2), close_price * 1.05), 2)
 
             # Historical Holding Logic

@@ -177,8 +177,27 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
             if df.empty:
                 continue
                 
-            last_bar = df.iloc[-1]
-            # Run complete historical backtest on ALL stocks unconditionally
+            vol = float(last_bar['Volume'])
+            vol_sma = float(last_bar['Volume_SMA'])
+            adx = float(last_bar['ADX'])
+            rsi = float(last_bar['RSI'])
+            supertrend_val = float(last_bar['Supertrend'])
+            close_price = float(last_bar['Close'])
+
+            # --- SELECTIVE BACKTESTING (Optimization) ---
+            # Define basic technical filter
+            sl_buffer = 1.12 if interval == "1d" else 1.25
+            is_breakout_candidate = (
+                close_price > supertrend_val and 
+                close_price <= supertrend_val * sl_buffer and
+                rsi > 55
+            )
+
+            if not is_breakout_candidate:
+                success_count += 1
+                continue
+
+            # Run complete historical backtest ONLY for candidates
             bt_results = run_backtest(df, interval=interval)
             win_rate = bt_results["win_rate"]
             
