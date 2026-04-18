@@ -10,6 +10,14 @@ from strategy import calculate_indicators, run_backtest, check_entry_condition
 from typing import List, Optional
 import os
 import time
+import requests
+
+# Configure yfinance to use a browser-like User-Agent
+# This reduces the chance of 403 Forbidden errors on Vercel
+session = requests.Session()
+session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+})
 
 app = FastAPI(title="Nifty 500 Swing Analyzer")
 
@@ -153,13 +161,18 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
     cache_key = f"screener_{interval}"
     now = time.time()
     
-    # Use the optimized tickers for this environment
-    if not force and is_cache_valid(cache_key):
-        data = DATA_CACHE[cache_key]['data']
-    else:
-        from datetime import datetime
-        data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
-        DATA_CACHE[cache_key] = {'data': data, 'date': datetime.now().strftime('%Y-%m-%d')}
+    try:
+        # Use the optimized tickers for this environment
+        if not force and is_cache_valid(cache_key):
+            data = DATA_CACHE[cache_key]['data']
+        else:
+            from datetime import datetime
+            # Pass the custom session to yfinance
+            data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False, session=session)
+            DATA_CACHE[cache_key] = {'data': data, 'date': datetime.now().strftime('%Y-%m-%d')}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Data Download Failed: {str(e)}")
+
     
     total_universe = len(tickers)
     success_count = 0

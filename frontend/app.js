@@ -183,7 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(`/api/screener?interval=${interval}&force=${forceRefresh}`);
-            if (!res.ok) throw new Error("Network Response error");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Server Error (${res.status})`);
+            }
             const data = await res.json();
             
             const m = data.metrics;
