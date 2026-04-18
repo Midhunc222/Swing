@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nifty 500 Breakout Screener</title>
+    <meta name="description" content="Advanced swing trading backtester and screener for Nifty 500 stocks.">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <i data-lucide="trending-up" class="logo-icon"></i>
+                <h1 class="logo-text">Aura<span>Trade</span></h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" id="nav-screener">
+                    <i data-lucide="activity"></i>
+                    Live Screener
+                </button>
+                <button class="nav-item" id="nav-backtester">
+                    <i data-lucide="history"></i>
+                    Backtester
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Nifty 500 Swing Strategy Engine</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Screener Section -->
+            <section id="screener-section" class="view-section active">
+                <header class="section-header">
+                    <h2>Live Breakouts</h2>
+                    <div class="controls">
+                        <select id="screener-timeframe" class="custom-select">
+                            <option value="1d">Daily (1d)</option>
+                            <option value="1wk">Weekly (1wk)</option>
+                            <option value="1mo">Monthly (1mo)</option>
+                        </select>
+                        <button id="refresh-screener" class="btn btn-primary">
+                            <i data-lucide="refresh-cw"></i>
+                            Scan Market
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="status-panel" id="screener-status">
+                    Ready to scan market...
+                </div>
+
+                <div class="grid-cards" id="breakout-cards">
+                    <!-- Cards will be injected here -->
+                </div>
+            </section>
+
+            <!-- Backtester Section -->
+            <section id="backtester-section" class="view-section">
+                <header class="section-header">
+                    <h2>Strategy Backtester</h2>
+                    <div class="controls">
+                        <input type="text" id="backtester-ticker" list="tickers-list" class="custom-select" placeholder="Search Ticker (e.g. RELIANCE.NS)..." style="min-width: 200px;">
+                        <datalist id="tickers-list">
+                            <!-- Populated dynamically -->
+                        </datalist>
+                        <select id="backtester-timeframe" class="custom-select">
+                            <option value="1d">Daily (1d)</option>
+                            <option value="1wk">Weekly (1wk)</option>
+                            <option value="1mo">Monthly (1mo)</option>
+                        </select>
+                        <button id="run-backtest" class="btn btn-primary">
+                            <i data-lucide="play"></i>
+                            Run Test
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Fundamentals Panel -->
+                <div id="fundamentals-panel" class="fundamentals-panel hidden">
+                    <div class="fund-header">
+                        <div>
+                            <h3 id="fund-name">Company Name</h3>
+                            <p id="fund-meta" class="fund-meta"></p>
+                        </div>
+                        <div class="fund-verdicts">
+                            <span id="fund-lt-badge" class="verdict-badge"></span>
+                            <span id="fund-swing-badge" class="verdict-badge"></span>
+                        </div>
+                    </div>
+                    <p id="fund-desc" class="fund-desc"></p>
+
+                    <div class="fund-grid">
+                        <div class="fund-metric">
+                            <span class="fm-label">Market Cap</span>
+                            <span id="fm-mcap" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">CMP</span>
+                            <span id="fm-cmp" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">52W High</span>
+                            <span id="fm-52h" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">52W Low</span>
+                            <span id="fm-52l" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric" id="fm-pe-wrap">
+                            <span class="fm-label">P/E (TTM)</span>
+                            <span id="fm-pe" class="fm-value">-</span>
+                            <span id="fm-pe-bench" class="fm-bench"></span>
+                        </div>
+                        <div class="fund-metric" id="fm-fpe-wrap">
+                            <span class="fm-label">Forward P/E</span>
+                            <span id="fm-fpe" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric" id="fm-pb-wrap">
+                            <span class="fm-label">P/B Ratio</span>
+                            <span id="fm-pb" class="fm-value">-</span>
+                            <span id="fm-pb-bench" class="fm-bench"></span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">PEG Ratio</span>
+                            <span id="fm-peg" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">EV/EBITDA</span>
+                            <span id="fm-ebitda" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">ROE</span>
+                            <span id="fm-roe" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Debt / Equity</span>
+                            <span id="fm-de" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Profit Margin</span>
+                            <span id="fm-pm" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Revenue Growth</span>
+                            <span id="fm-rg" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Earnings Growth</span>
+                            <span id="fm-eg" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Dividend Yield</span>
+                            <span id="fm-div" class="fm-value">-</span>
+                        </div>
+                        <div class="fund-metric">
+                            <span class="fm-label">Promoter Holding</span>
+                            <span id="fm-promo" class="fm-value">-</span>
+                        </div>
+                    </div>
+
+                    <div class="fund-bottom">
+                        <div class="fund-signals" id="fund-signals-box"></div>
+                        <div class="fund-mgmt" id="fund-mgmt-box"></div>
+                    </div>
+                </div>
+
+                <div class="status-panel" id="backtester-status">
+                     Select a ticker and run the test...
+                </div>
+
+                <div class="dashboard-stats hidden" id="backtest-results">
+                    <div class="stat-card">
+                        <div class="stat-title">Win Rate</div>
+                        <div class="stat-value" id="stat-win-rate">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Total Trades</div>
+                        <div class="stat-value" id="stat-total-trades">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Winning Trades</div>
+                        <div class="stat-value text-accent" id="stat-wins">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Losing Trades</div>
+                        <div class="stat-value text-danger" id="stat-losses">0</div>
+                    </div>
+                </div>
+
+                <div class="trades-table-container hidden" id="trades-container">
+                    <h3>Trade Log</h3>
+                    <table class="trades-table">
+                        <thead>
+                            <tr>
+                                <th>Entry Date</th>
+                                <th>Exit Date</th>
+                                <th>Entry Price</th>
+                                <th>Exit Price</th>
+                                <th>P&L %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-tbody">
+                            <!-- Trade rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js?v=21"></script>
+</body>
+</html>

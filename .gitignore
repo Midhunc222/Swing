@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+backend/out.json
+backend/test.json
+*.log
+.gemini/
