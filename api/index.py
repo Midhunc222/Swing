@@ -5,9 +5,9 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import yfinance as yf
 import pandas as pd
-from tickers import NIFTY_500_TICKERS
+from tickers import NIFTY_500_TICKERS, NIFTY_100_TICKERS
 from strategy import calculate_indicators, run_backtest, check_entry_condition
-from typing import List
+from typing import List, Optional
 import os
 import time
 
@@ -151,18 +151,22 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
     cache_key = f"screener_{interval}"
     now = time.time()
     
+    # Use Nifty 100 on Vercel to avoid 10s timeout, Nifty 500 otherwise
+    is_vercel = os.environ.get('VERCEL') == '1'
+    tickers = NIFTY_100_TICKERS if is_vercel else NIFTY_500_TICKERS
+    
     if not force and is_cache_valid(cache_key):
         data = DATA_CACHE[cache_key]['data']
     else:
         from datetime import datetime
-        data = yf.download(NIFTY_500_TICKERS, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
+        data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
         DATA_CACHE[cache_key] = {'data': data, 'date': datetime.now().strftime('%Y-%m-%d')}
     
-    total_universe = len(NIFTY_500_TICKERS)
+    total_universe = len(tickers)
     success_count = 0
     fail_count = 0
     
-    for ticker in NIFTY_500_TICKERS:
+    for ticker in tickers:
         try:
             if len(data.columns.levels[0]) > 0 and ticker in data.columns.levels[0]:
                  df = data[ticker].copy()
