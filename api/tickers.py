@@ -101,5 +101,6 @@ NIFTY_500_TICKERS = [
     "ZENTEC.NS", "ZENSARTECH.NS", "ZYDUSLIFE.NS", "ZYDUSWELL.NS", "ECLERX.NS",
 ]
 
-# Subset for fast scanning on Serverless (Vercel)
+# Subsets for fast scanning on Serverless (Vercel)
 NIFTY_100_TICKERS = NIFTY_500_TICKERS[:100]
+NIFTY_50_TICKERS = NIFTY_500_TICKERS[:50]

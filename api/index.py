@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import yfinance as yf
 import pandas as pd
-from tickers import NIFTY_500_TICKERS, NIFTY_100_TICKERS
+from tickers import NIFTY_500_TICKERS, NIFTY_100_TICKERS, NIFTY_50_TICKERS
 from strategy import calculate_indicators, run_backtest, check_entry_condition
 from typing import List, Optional
 import os
@@ -145,16 +145,15 @@ async def get_fundamentals(ticker: str):
 @app.get("/api/screener")
 async def screen_stocks(interval: str = "1d", force: bool = False):
     breakout_stocks = []
-    # Daily needs 2y for EMA 200. Monthly needs "max" to guarantee 200 months (16 years)
-    period = "2y" if interval == "1d" else "max"
+    # Multi-tier speed logic for Vercel vs Local
+    is_vercel = os.environ.get('VERCEL') == '1'
+    tickers = NIFTY_50_TICKERS if is_vercel else NIFTY_500_TICKERS
+    period = "1y" if is_vercel else ("2y" if interval == "1d" else "max")
     
     cache_key = f"screener_{interval}"
     now = time.time()
     
-    # Use Nifty 250 on Vercel (now safe due to selective backtesting)
-    is_vercel = os.environ.get('VERCEL') == '1'
-    tickers = NIFTY_500_TICKERS[:250] if is_vercel else NIFTY_500_TICKERS
-    
+    # Use the optimized tickers for this environment
     if not force and is_cache_valid(cache_key):
         data = DATA_CACHE[cache_key]['data']
     else:
