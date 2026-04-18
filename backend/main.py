@@ -145,24 +145,26 @@ async def get_fundamentals(ticker: str):
 @app.get("/api/screener")
 async def screen_stocks(interval: str = "1d", force: bool = False):
     breakout_stocks = []
-    # Daily needs 2y for EMA 200. Monthly needs "max" to guarantee 200 months (16 years)
-    period = "2y" if interval == "1d" else "max"
+    # 1y is sufficient for EMA 200 and faster for downloads.
+    period = "1y" if interval == "1d" else "max"
     
     cache_key = f"screener_{interval}"
     now = time.time()
+    
+    tickers = NIFTY_500_TICKERS[:250]
     
     if not force and is_cache_valid(cache_key):
         data = DATA_CACHE[cache_key]['data']
     else:
         from datetime import datetime
-        data = yf.download(NIFTY_500_TICKERS, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
+        data = yf.download(tickers, period=period, interval=interval, group_by="ticker", threads=True, progress=False)
         DATA_CACHE[cache_key] = {'data': data, 'date': datetime.now().strftime('%Y-%m-%d')}
     
-    total_universe = len(NIFTY_500_TICKERS)
+    total_universe = len(tickers)
     success_count = 0
     fail_count = 0
     
-    for ticker in NIFTY_500_TICKERS:
+    for ticker in tickers:
         try:
             if len(data.columns.levels[0]) > 0 and ticker in data.columns.levels[0]:
                  df = data[ticker].copy()
