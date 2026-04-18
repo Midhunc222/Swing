@@ -179,6 +179,7 @@ async def screen_stocks(interval: str = "1d", force: bool = False):
             if df.empty:
                 continue
                 
+            last_bar = df.iloc[-1]
             vol = float(last_bar['Volume'])
             vol_sma = float(last_bar['Volume_SMA'])
             adx = float(last_bar['ADX'])
